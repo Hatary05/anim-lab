@@ -76,16 +76,17 @@ export default function Playground() {
     >
       {rects.map((rect) => (
         <div
-          key={rect.id}
-          className={`absolute rounded-xl border-2 border-black ${
-            rect.mode === "selected" ? "bg-blue-400" : "bg-red-400"
-          }`}
-          style={{
-            left: rect.x,
-            top: rect.y,
-            width: rect.w,
-            height: rect.h,
-          }}
+            key={rect.id}
+            className={`absolute rounded-xl border shadow-sm transition-transform ${
+            rect.state.kind === "selected" ? "bg-red-300" : "bg-blue-200"
+            }`}
+            style={{
+                left: rect.x,
+                top: rect.y,
+                width: rect.w,
+                height: rect.h,
+                transform: `scale(${rect.scale})`,
+            }}
         />
       ))}
     </div>
