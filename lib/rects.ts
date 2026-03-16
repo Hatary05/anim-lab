@@ -72,13 +72,13 @@ export function makeRoaming(rect: Rect): Rect {
         scale: 1,
     }
 }
-export function makeSelected(rect: Rect, mx : number, my: number): Rect {
+export function makeSelected<T extends Rect>(rect: T, mx : number, my: number): T {
     return {
         ...rect,
         vx: 0,
         vy: 0,
         stateTime: 0,
-        scale: 1.18,
+        scale: 2.28,
         state: {
             kind: "selected",
             startX: rect.x,
@@ -89,7 +89,7 @@ export function makeSelected(rect: Rect, mx : number, my: number): Rect {
         },
     }
 }
-export function makeKicked(rect: Rect, px: number, py: number, kickSpeed: number): Rect {
+export function makeKicked<T extends Rect>(rect: T, px: number, py: number, kickSpeed: number): T {
     const cx = rect.x + rect.w /2 ;
     const cy = rect.y + rect.h / 2;
 

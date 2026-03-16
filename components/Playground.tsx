@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createRects, type Rect } from "@/lib/rects";
 import { updateRects, type BoxSize, selectClosestRect } from "@/lib/physics";
+import { createChips, type Chip } from "@/lib/chips";
+import ChipItem from "@/components/ChipItem";
 
 export default function Playground() {
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -10,7 +12,8 @@ export default function Playground() {
   const lastTimeRef = useRef<number | null>(null);
 
   const [boxSize, setBoxSize] = useState<BoxSize>({ width: 800, height: 500 });
-  const [rects, setRects] = useState<Rect[]>([]);
+  // const [rects, setRects] = useState<Rect[]>([]);
+  const [Chips, setChips] = useState<Chip[]>([]);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const element = boxRef.current;
@@ -20,7 +23,7 @@ export default function Playground() {
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
 
-    setRects((prev) => selectClosestRect(prev, mx, my));
+    setChips((prev) => selectClosestRect(prev, mx, my));
   };
 
   useEffect(() => {
@@ -33,7 +36,8 @@ export default function Playground() {
       const nextBox = { width, height };
 
       setBoxSize(nextBox);
-      setRects(createRects(8, width, height));
+      //setRects(createRects(8, width, height));
+      setChips(createChips(8, width, height));
     };
 
     measure();
@@ -45,7 +49,7 @@ export default function Playground() {
   }, []);
 
   useEffect(() => {
-    if (rects.length === 0) return;
+    if (Chips.length === 0) return;
 
     const animate = (time: number) => {
       if (lastTimeRef.current == null) {
@@ -55,7 +59,7 @@ export default function Playground() {
       const dt = (time - lastTimeRef.current) / 1000;
       lastTimeRef.current = time;
 
-      setRects((prev) => updateRects(prev, dt, boxSize));
+      setChips((prev) => updateRects(prev, dt, boxSize));
       frameRef.current = requestAnimationFrame(animate);
     };
 
@@ -66,15 +70,18 @@ export default function Playground() {
       frameRef.current = null;
       lastTimeRef.current = null;
     };
-  }, [boxSize, rects.length]);
+  }, [boxSize, Chips.length]);
 
   return (
     <div 
       ref={boxRef} 
       onClick={handleClick}
-      className="relative h-[530px] w-full overflow-hidden rounded-3xl border-4 border-black bg-neutral-100"
+      className="relative h-[770px] w-full overflow-hidden rounded-3xl border-4 border-black bg-neutral-100"
     >
-      {rects.map((rect) => (
+      {Chips.map((chip) => (
+        <ChipItem key={chip.id} chip={chip} />
+      ))}
+      {/* {rects.map((rect) => (
         <div
             key={rect.id}
             className={`absolute rounded-xl border shadow-sm transition-transform ${
@@ -88,7 +95,7 @@ export default function Playground() {
                 transform: `scale(${rect.scale})`,
             }}
         />
-      ))}
+      ))} */}
     </div>
   );
 }

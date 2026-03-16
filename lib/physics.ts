@@ -1,12 +1,17 @@
-import { type Rect, randomVelocity, makeKicked, makeRoaming, makeSelected } from "./rects";
-
+import {
+  type Rect,
+  randomVelocity,
+  makeKicked,
+  makeRoaming,
+  makeSelected,
+} from "./rects";
 
 export type BoxSize = {
   width: number;
   height: number;
 };
 
-export function reflectRect(rect: Rect, box: BoxSize): Rect {
+export function reflectRect<T extends Rect>(rect: T, box: BoxSize): T {
   let nx = rect.x;
   let ny = rect.y;
   let nvx = rect.vx;
@@ -36,7 +41,7 @@ export function reflectRect(rect: Rect, box: BoxSize): Rect {
     vy: nvy,
   };
 }
-export function moveRect(rect: Rect, dt: number): Rect {
+export function moveRect<T extends Rect>(rect: T, dt: number): T {
   return {
     ...rect,
     x: rect.x + rect.vx * dt,
@@ -57,7 +62,7 @@ function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
-function updateRoamingRect(rect: Rect, dt: number, box: BoxSize): Rect {
+function updateRoamingRect<T extends Rect>(rect: T, dt: number, box: BoxSize): T {
   const moved = moveRect(rect, dt);
   const reflected = reflectRect(moved, box);
 
@@ -69,7 +74,7 @@ function updateRoamingRect(rect: Rect, dt: number, box: BoxSize): Rect {
     baseVy: reflected.vy,
   };
 }
-function updateSelectedRect(rect: Rect, dt: number): Rect {
+function updateSelectedRect<T extends Rect>(rect: T, dt: number): T {
   if (rect.state.kind !== "selected") return rect;
 
   const nextTime = rect.stateTime + dt;
@@ -93,10 +98,9 @@ function updateSelectedRect(rect: Rect, dt: number): Rect {
     vx: dx * speedScale,
     vy: dy * speedScale,
     stateTime: nextTime,
-    scale: 1.18,
   };
 }
-function updateKickedRect(rect: Rect, dt: number, box: BoxSize): Rect {
+function updateKickedRect<T extends Rect>(rect: T, dt: number, box: BoxSize): T {
   if (rect.state.kind !== "kicked") return rect;
 
   const nextTime = rect.stateTime + dt;
@@ -149,7 +153,7 @@ function updateKickedRect(rect: Rect, dt: number, box: BoxSize): Rect {
     scale: 1,
   };
 }
-export function updateRect(rect: Rect, dt: number, box: BoxSize): Rect {
+export function updateRect<T extends Rect>(rect: T, dt: number, box: BoxSize): T {
   switch (rect.state.kind) {
     case "roaming":
       return updateRoamingRect(rect, dt, box);
@@ -160,8 +164,8 @@ export function updateRect(rect: Rect, dt: number, box: BoxSize): Rect {
   }
 }
 
-export function findClosestRectId(
-  rects: Rect[],
+export function findClosestRectId<T extends Rect>(
+  rects: T[],
   mx: number,
   my: number
 ): number | null {
@@ -186,7 +190,7 @@ export function findClosestRectId(
   return bestId;
 }
 
-export function moveRectToPoint(rect: Rect, mx: number, my: number): Rect {
+export function moveRectToPoint<T extends Rect>(rect: T, mx: number, my: number): T {
   return {
     ...rect,
     x: mx - rect.w / 2,
@@ -194,7 +198,7 @@ export function moveRectToPoint(rect: Rect, mx: number, my: number): Rect {
   };
 }
 
-export function selectClosestRect(rects: Rect[], mx: number, my: number): Rect[] {
+export function selectClosestRect<T extends Rect>(rects: T[], mx: number, my: number): T[] {
   const id = findClosestRectId(rects, mx, my);
   if (id == null) return rects;
 
@@ -220,6 +224,6 @@ export function selectClosestRect(rects: Rect[], mx: number, my: number): Rect[]
     return makeKicked(rect, mx, my, KICK_SPEED);
   });
 }
-export function updateRects(rects: Rect[], dt: number, box: BoxSize): Rect[] {
+export function updateRects<T extends Rect>(rects: T[], dt: number, box: BoxSize): T[] {
   return rects.map((rect) => updateRect(rect, dt, box));
 }
