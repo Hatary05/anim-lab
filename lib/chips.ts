@@ -6,6 +6,7 @@ export type Chip = Rect & {
   image: string;
   href?: string;
   shellColor?: string;
+  activeShellColor?: string;
   code?: string;
 };
 
@@ -22,42 +23,42 @@ const chipSeeds: ChipSeed[] = [
     title: "Anim Lab",
     image: "/chips/pikachu.png",
     href: "https://github.com/Hatary05/anim-lab",
-    shellColor: "#d6d6d6",
+    shellColor: "#7887f7ff",
     code: "LNA-CTR-ALB-KOR",
   },
   {
     title: "University",
     image: "/chips/university.png",
     href: "/",
-    shellColor: "#d9d9d9",
+    shellColor: "#f4a25cff",
     code: "LNA-CTR-UNI-KOR",
   },
   {
     title: "ME",
     image: "/chips/me.png",
     href: "/",
-    shellColor: "#d9d9d9",
+    shellColor: "#effb64ff",
     code: "LNA-CTR-ME-KOR",
   },
   {
     title: "Trip",
     image: "/chips/trip.png",
     href: "/",
-    shellColor: "#d3d3d3",
+    shellColor: "#f48be2ff",
     code: "LNA-CTR-GEO-KOR",
   },
   {
     title: "PS-Study",
     image: "/chips/ps-study.png",
     href: "/",
-    shellColor: "#d0d0d0",
+    shellColor: "#25aa5aff",
     code: "LNA-CTR-PSN-KOR",
   },
   {
     title: "ICPC",
     image: "/chips/2026icpc-apac.png",
     href: "/",
-    shellColor: "#d0d0d0",
+    shellColor: "#5be3daff",
     code: "LNA-CTR-ICP-KOR",
   },
 ];
@@ -71,13 +72,10 @@ function randomVelocity() {
 }
 
 export function createChips(
-  count: number,
   boxWidth: number,
   boxHeight: number
 ): Chip[] {
-  return Array.from({ length: count }, (_, i) => {
-    const seed = chipSeeds[i % chipSeeds.length];
-
+  return chipSeeds.map((seed, i) => {
     const w = 104;
     const h = 122;
 
@@ -102,7 +100,8 @@ export function createChips(
       title: seed.title,
       image: seed.image,
       href: seed.href,
-      shellColor: seed.shellColor,
+      shellColor: "#d8d8d8",
+      activeShellColor: seed.shellColor,
       code: seed.code,
     };
   });

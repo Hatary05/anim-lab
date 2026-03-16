@@ -5,11 +5,40 @@ import {
   makeRoaming,
   makeSelected,
 } from "./rects";
+import { SELECTED_SCALE } from "./rects";
 
 export type BoxSize = {
   width: number;
   height: number;
 };
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(v, hi));
+}
+
+function getVisualSize(rect: Rect, scale = rect.scale) {
+  return {
+    width: rect.w * scale,
+    height: rect.h * scale,
+  };
+}
+
+function getSelectedTarget(
+  rect: Rect,
+  mx: number,
+  my: number,
+  box: BoxSize,
+  nextScale: number
+) {
+  const visual = getVisualSize(rect, nextScale);
+
+  const rawX = mx - visual.width / 2;
+  const rawY = my - visual.height / 2;
+
+  return {
+    x: clamp(rawX, 0, Math.max(0, box.width - visual.width)),
+    y: clamp(rawY, 0, Math.max(0, box.height - visual.height)),
+  };
+}
 
 export function reflectRect<T extends Rect>(rect: T, box: BoxSize): T {
   let nx = rect.x;
@@ -17,19 +46,21 @@ export function reflectRect<T extends Rect>(rect: T, box: BoxSize): T {
   let nvx = rect.vx;
   let nvy = rect.vy;
 
+  const visual = getVisualSize(rect);
+
   if (nx <= 0) {
     nx = 0;
     nvx *= -1;
-  } else if (nx + rect.w >= box.width) {
-    nx = box.width - rect.w;
+  } else if (nx + visual.width >= box.width) {
+    nx = box.width - visual.width;
     nvx *= -1;
   }
 
   if (ny <= 0) {
     ny = 0;
     nvy *= -1;
-  } else if (ny + rect.h >= box.height) {
-    ny = box.height - rect.h;
+  } else if (ny + visual.height >= box.height) {
+    ny = box.height - visual.height;
     nvy *= -1;
   }
 
@@ -198,23 +229,24 @@ export function moveRectToPoint<T extends Rect>(rect: T, mx: number, my: number)
   };
 }
 
-export function selectClosestRect<T extends Rect>(rects: T[], mx: number, my: number): T[] {
+export function selectClosestRect<T extends Rect>(
+  rects: T[],
+  mx: number,
+  my: number,
+  box: BoxSize
+): T[] {
   const id = findClosestRectId(rects, mx, my);
   if (id == null) return rects;
 
   return rects.map((rect) => {
     if (rect.id === id) {
-      return makeSelected(rect, mx, my);
+      const target = getSelectedTarget(rect, mx, my, box, SELECTED_SCALE);
+      return makeSelected(rect, target.x, target.y, SELECTED_SCALE);
     }
 
     if (rect.state.kind === "selected") {
       return makeKicked(
-        {
-          ...rect,
-          baseVx: randomVelocity(),
-          baseVy: randomVelocity(),
-          scale: 1,
-        },
+        { ...rect, baseVx: randomVelocity(), baseVy: randomVelocity(), scale: 1 },
         mx,
         my,
         KICK_SPEED

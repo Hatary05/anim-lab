@@ -23,7 +23,7 @@ export default function Playground() {
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
 
-    setChips((prev) => selectClosestRect(prev, mx, my));
+    setChips((prev) => selectClosestRect(prev, mx, my, boxSize));
   };
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function Playground() {
 
       setBoxSize(nextBox);
       //setRects(createRects(8, width, height));
-      setChips(createChips(8, width, height));
+      setChips(createChips(width, height));
     };
 
     measure();
@@ -76,7 +76,7 @@ export default function Playground() {
     <div 
       ref={boxRef} 
       onClick={handleClick}
-      className="relative h-[770px] w-full overflow-hidden rounded-3xl border-4 border-black bg-neutral-100"
+      className="relative h-[750px] w-full overflow-hidden rounded-3xl border-4 border-black bg-neutral-100"
     >
       {Chips.map((chip) => (
         <ChipItem key={chip.id} chip={chip} />

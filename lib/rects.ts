@@ -35,6 +35,9 @@ function random(min: number, max: number) {
 export function randomVelocity() {
     return random(-120, 120);
 }
+function clamp(v: number, lo: number, hi: number) {
+    return Math.max(lo, Math.min(v, hi));
+}
 
 export function createRects(count: number, boxWidth: number, boxHeight: number): Rect[] {
     return Array.from({ length: count}, (_, i) => {
@@ -72,22 +75,28 @@ export function makeRoaming(rect: Rect): Rect {
         scale: 1,
     }
 }
-export function makeSelected<T extends Rect>(rect: T, mx : number, my: number): T {
-    return {
-        ...rect,
-        vx: 0,
-        vy: 0,
-        stateTime: 0,
-        scale: 2.28,
-        state: {
-            kind: "selected",
-            startX: rect.x,
-            startY: rect.y,
-            targetX: mx - rect.w / 2,
-            targetY: my - rect.h / 2,
-            duration: 0.45,
-        },
-    }
+export const SELECTED_SCALE = 1.88;
+export function makeSelected<T extends Rect>(
+  rect: T,
+  targetX: number,
+  targetY: number,
+  scale: number = SELECTED_SCALE,
+): T {
+  return {
+    ...rect,
+    vx: 0,
+    vy: 0,
+    stateTime: 0,
+    scale,
+    state: {
+      kind: "selected",
+      startX: rect.x,
+      startY: rect.y,
+      targetX,
+      targetY,
+      duration: 0.45,
+    },
+  };
 }
 export function makeKicked<T extends Rect>(rect: T, px: number, py: number, kickSpeed: number): T {
     const cx = rect.x + rect.w /2 ;
