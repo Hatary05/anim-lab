@@ -1,4 +1,4 @@
-import type { Rect } from "./rects";
+import {type Rect, random, randomVelocity } from "./rects";
 
 export type Chip = Rect & {
   kind: "chip";
@@ -63,14 +63,6 @@ const chipSeeds: ChipSeed[] = [
   },
 ];
 
-function random(min: number, max: number) {
-  return Math.random() * (max - min) + min;
-}
-
-function randomVelocity() {
-  return random(-120, 120);
-}
-
 export function createChips(
   boxWidth: number,
   boxHeight: number
@@ -78,9 +70,7 @@ export function createChips(
   return chipSeeds.map((seed, i) => {
     const w = 104;
     const h = 122;
-
-    const baseVx = randomVelocity();
-    const baseVy = randomVelocity();
+    const [baseVx, baseVy] = randomVelocity();
 
     return {
       id: i + 1,

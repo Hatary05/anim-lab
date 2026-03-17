@@ -8,7 +8,7 @@ type RectState = (
         targetY: number;
         duration: number;
       }
-    | { kind: "kicked"; kickVx: number, kickVy: number }
+    | { kind: "kicked"; }
 );
 
 export type Rect = {
@@ -29,11 +29,13 @@ export type Rect = {
     scale: number;
 };
 
-function random(min: number, max: number) {
+export function random(min: number, max: number) {
     return Math.random() * (max - min) + min;
 };
 export function randomVelocity() {
-    return random(-120, 120);
+    const V = random(60, 90);
+    const theta = random(0, Math.PI * 2);
+    return [V * Math.cos(theta), V * Math.sin(theta)];
 }
 function clamp(v: number, lo: number, hi: number) {
     return Math.max(lo, Math.min(v, hi));
@@ -41,10 +43,9 @@ function clamp(v: number, lo: number, hi: number) {
 
 export function createRects(count: number, boxWidth: number, boxHeight: number): Rect[] {
     return Array.from({ length: count}, (_, i) => {
-        const w = 80;
-        const h = 80;
-        const baseVx = randomVelocity();
-        const baseVy = randomVelocity();
+        const w = 100;
+        const h = 100;
+        const [baseVx, baseVy] = randomVelocity();
 
         return {
             id: i + 1,
@@ -107,16 +108,17 @@ export function makeKicked<T extends Rect>(rect: T, px: number, py: number, kick
     const len = Math.hypot(dx, dy) || 1;
     dx /= len, dy /= len;
 
+    const kickVx = dx * kickSpeed;
+    const kickVy = dy * kickSpeed;
+
     return {
         ...rect,
-        vx: 0,
-        vy: 0,
+        vx: kickVx,
+        vy: kickVy,
         stateTime: 0,
         scale: 1,
         state: {
             kind: "kicked",
-            kickVx: dx * kickSpeed,
-            kickVy: dy * kickSpeed,
         },
     };
 }

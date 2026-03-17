@@ -20,7 +20,7 @@ export default function ChipItem({ chip }: ChipItemProps) {
         width: chip.w,
         height: chip.h,
         transform: `scale(${chip.scale})`,
-        transformOrigin: "top left",
+        transformOrigin: "center center",
         transition: "transform 120ms ease",
       }}
     >

@@ -15,13 +15,22 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(v, hi));
 }
 
-function getVisualSize(rect: Rect, scale = rect.scale) {
+function getVisualBounds(rect: Rect, scale = rect.scale) {
+  const width = rect.w * scale;
+  const height = rect.h * scale;
+
+  const extraX = (width - rect.w) / 2;
+  const extraY = (height - rect.h) / 2;
+
   return {
-    width: rect.w * scale,
-    height: rect.h * scale,
+    x: rect.x - extraX,
+    y: rect.y - extraY,
+    width,
+    height,
+    extraX,
+    extraY,
   };
 }
-
 function getSelectedTarget(
   rect: Rect,
   mx: number,
@@ -29,39 +38,48 @@ function getSelectedTarget(
   box: BoxSize,
   nextScale: number
 ) {
-  const visual = getVisualSize(rect, nextScale);
+  const visual = getVisualBounds(rect, nextScale);
+  const rawX = mx - rect.w / 2;
+  const rawY = my - rect.h / 2;
 
-  const rawX = mx - visual.width / 2;
-  const rawY = my - visual.height / 2;
+  const minX = visual.extraX;
+  const maxX = Math.max(minX, box.width - rect.w - visual.extraX);
+
+  const minY = visual.extraY;
+  const maxY = Math.max(minY, box.height - rect.h - visual.extraY);
 
   return {
-    x: clamp(rawX, 0, Math.max(0, box.width - visual.width)),
-    y: clamp(rawY, 0, Math.max(0, box.height - visual.height)),
+    x: clamp(rawX, minX, maxX),
+    y: clamp(rawY, minY, maxY),
   };
 }
 
-export function reflectRect<T extends Rect>(rect: T, box: BoxSize): T {
+export function reflectRect<T extends Rect>(
+  rect: T, 
+  box: BoxSize,
+  restitution = 0.8,
+): T {
   let nx = rect.x;
   let ny = rect.y;
   let nvx = rect.vx;
   let nvy = rect.vy;
 
-  const visual = getVisualSize(rect);
+  const visual = getVisualBounds(rect);
 
   if (nx <= 0) {
     nx = 0;
-    nvx *= -1;
+    nvx *= -1 * restitution ;
   } else if (nx + visual.width >= box.width) {
     nx = box.width - visual.width;
-    nvx *= -1;
+    nvx *= -1 * restitution;
   }
 
   if (ny <= 0) {
     ny = 0;
-    nvy *= -1;
+    nvy *= -1 * restitution;
   } else if (ny + visual.height >= box.height) {
     ny = box.height - visual.height;
-    nvy *= -1;
+    nvy *= -1 * restitution;
   }
 
   return {
@@ -80,10 +98,10 @@ export function moveRect<T extends Rect>(rect: T, dt: number): T {
   };
 }
 
-const KICK_SPEED = 260;
+const KICK_SPEED = 280;
 const SLOW_DOWN_TIME = 0.8;
 const PAUSE_TIME = 0.05;
-const RECOVER_TIME = 0.8;
+const RECOVER_TIME = 1;
 
 function clamp01(x: number) {
   return Math.max(0, Math.min(1, x));
@@ -105,55 +123,134 @@ function updateRoamingRect<T extends Rect>(rect: T, dt: number, box: BoxSize): T
     baseVy: reflected.vy,
   };
 }
-function updateSelectedRect<T extends Rect>(rect: T, dt: number): T {
+
+const SELECTED_SHAKE_START = 3.0;
+const SELECTED_RELEASE_TIME = 5.0;
+const SELECTED_SHAKE_AMPLITUDE_START = 0.4;
+const SELECTED_SHAKE_AMPLITUDE_END = 2.4;
+const SELECTED_SHAKE_FREQ_START = 1.0;
+const SELECTED_SHAKE_FREQ_END = 10.0;
+function updateSelectedRect<T extends Rect>(rect: T, dt: number, box: BoxSize): T {
   if (rect.state.kind !== "selected") return rect;
 
   const nextTime = rect.stateTime + dt;
-  const u = clamp01(nextTime / rect.state.duration);
 
-  const progress = (1 - Math.cos(Math.PI * u)) / 2;
+  if (nextTime >= SELECTED_RELEASE_TIME) {
+    return makeRoaming({
+      ...rect,
+      x: rect.state.targetX,
+      y: rect.state.targetY,
+      scale: 1,
+    }) as T;
+  }
 
-  const nx = lerp(rect.state.startX, rect.state.targetX, progress);
-  const ny = lerp(rect.state.startY, rect.state.targetY, progress);
+  let nx = rect.x;
+  let ny = rect.y;
+  let vx = 0;
+  let vy = 0;
 
-  const dx = rect.state.targetX - rect.state.startX;
-  const dy = rect.state.targetY - rect.state.startY;
-  const duration = rect.state.duration;
+  if (nextTime <= rect.state.duration) {
+    const u = clamp01(nextTime / rect.state.duration);
+    const progress = (1 - Math.cos(Math.PI * u)) / 2;
 
-  const speedScale = (Math.PI / (2 * duration)) * Math.sin(Math.PI * u);
+    nx = lerp(rect.state.startX, rect.state.targetX, progress);
+    ny = lerp(rect.state.startY, rect.state.targetY, progress);
+
+    const dx = rect.state.targetX - rect.state.startX;
+    const dy = rect.state.targetY - rect.state.startY;
+    const duration = rect.state.duration;
+    const speedScale = (Math.PI / (2 * duration)) * Math.sin(Math.PI * u);
+
+    vx = dx * speedScale;
+    vy = dy * speedScale;
+  } else {
+    nx = rect.state.targetX;
+    ny = rect.state.targetY;
+    vx = 0;
+    vy = 0;
+  }
+
+  if (nextTime >= SELECTED_SHAKE_START) {
+    const shakeTime = nextTime - SELECTED_SHAKE_START;
+    const shakeWindow = SELECTED_RELEASE_TIME - SELECTED_SHAKE_START;
+
+    const p = clamp01(shakeTime / shakeWindow);
+
+    const amp = lerp(
+      SELECTED_SHAKE_AMPLITUDE_START,
+      SELECTED_SHAKE_AMPLITUDE_END,
+      p * p
+    );
+
+    const f0 = SELECTED_SHAKE_FREQ_START;
+    const f1 = SELECTED_SHAKE_FREQ_END;
+    const k = (f1 - f0) / shakeWindow;
+
+    const phase = 2 * Math.PI * (f0 * shakeTime + 0.5 * k * shakeTime * shakeTime);
+
+    const offsetX = Math.sin(phase) * amp;
+    const offsetY = Math.cos(phase * 1.17 + 0.7) * amp * 0.15;
+
+    const visual = getVisualBounds(rect);
+
+    nx = clamp(
+      rect.state.targetX + offsetX,
+      0,
+      Math.max(0, box.width - visual.width)
+    );
+    ny = clamp(
+      rect.state.targetY + offsetY,
+      0,
+      Math.max(0, box.height - visual.height)
+    );
+
+    vx = 0;
+    vy = 0;
+  }
 
   return {
     ...rect,
     x: nx,
     y: ny,
-    vx: dx * speedScale,
-    vy: dy * speedScale,
+    vx,
+    vy,
     stateTime: nextTime,
   };
 }
 function updateKickedRect<T extends Rect>(rect: T, dt: number, box: BoxSize): T {
   if (rect.state.kind !== "kicked") return rect;
 
-  const nextTime = rect.stateTime + dt;
+  const prevTime = rect.stateTime;
+  const nextTime = prevTime + dt;
 
-  let vx = 0;
-  let vy = 0;
+  let vx = rect.vx;
+  let vy = rect.vy;
   let nextKind: "roaming" | "kicked" = "kicked";
 
   if (nextTime < SLOW_DOWN_TIME) {
-    const t = clamp01(nextTime / SLOW_DOWN_TIME);
-    const factor = 1 - t;
-    vx = rect.state.kickVx * factor;
-    vy = rect.state.kickVy * factor;
-  } else if (nextTime < SLOW_DOWN_TIME + PAUSE_TIME) {
+    const prevFactor = Math.max(1e-6, 1 - clamp01(prevTime / SLOW_DOWN_TIME));
+    const nextFactor = 1 - clamp01(nextTime / SLOW_DOWN_TIME);
+    const ratio = nextFactor / prevFactor;
+
+    vx = rect.vx * ratio;
+    vy = rect.vy * ratio;
+  }
+  else if (nextTime < SLOW_DOWN_TIME + PAUSE_TIME) {
     vx = 0;
     vy = 0;
-  } else if (nextTime < SLOW_DOWN_TIME + PAUSE_TIME + RECOVER_TIME) {
-    const t = (nextTime - SLOW_DOWN_TIME - PAUSE_TIME) / RECOVER_TIME;
-    const a = clamp01(t);
-    vx = lerp(0, rect.baseVx, a);
-    vy = lerp(0, rect.baseVy, a);
-  } else {
+  }
+  else if (nextTime < SLOW_DOWN_TIME + PAUSE_TIME + RECOVER_TIME) {
+    const recoverStart = SLOW_DOWN_TIME + PAUSE_TIME;
+
+    const prevA = clamp01((prevTime - recoverStart) / RECOVER_TIME);
+    const nextA = clamp01((nextTime - recoverStart) / RECOVER_TIME);
+
+    const blend = (nextA - prevA) / Math.max(1e-6, 1 - prevA);
+
+    vx = rect.vx + (rect.baseVx - rect.vx) * blend;
+    vy = rect.vy + (rect.baseVy - rect.vy) * blend;
+  }
+  else {
     nextKind = "roaming";
     vx = rect.baseVx;
     vy = rect.baseVy;
@@ -177,8 +274,6 @@ function updateKickedRect<T extends Rect>(rect: T, dt: number, box: BoxSize): T 
     ...reflected,
     state: {
       kind: "kicked",
-      kickVx: rect.state.kickVx,
-      kickVy: rect.state.kickVy,
     },
     stateTime: nextTime,
     scale: 1,
@@ -189,7 +284,7 @@ export function updateRect<T extends Rect>(rect: T, dt: number, box: BoxSize): T
     case "roaming":
       return updateRoamingRect(rect, dt, box);
     case "selected":
-      return updateSelectedRect(rect, dt);
+      return updateSelectedRect(rect, dt, box);
     case "kicked":
       return updateKickedRect(rect, dt, box);
   }
