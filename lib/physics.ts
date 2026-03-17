@@ -339,9 +339,10 @@ export function selectClosestRect<T extends Rect>(
       return makeSelected(rect, target.x, target.y, SELECTED_SCALE);
     }
 
+    const [baseVx, baseVy] = randomVelocity();
     if (rect.state.kind === "selected") {
       return makeKicked(
-        { ...rect, baseVx: randomVelocity(), baseVy: randomVelocity(), scale: 1 },
+        { ...rect, baseVx, baseVy, scale: 1 },
         mx,
         my,
         KICK_SPEED
